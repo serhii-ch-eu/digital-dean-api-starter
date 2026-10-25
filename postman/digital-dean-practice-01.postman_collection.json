@@ -48,7 +48,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"full_name\": \"Олена Коваль\",\n  \"email\": \"olena.koval@example.com\",\n  \"group_code\": \"КН-31\",\n  \"study_program\": \"Комп'ютерні науки\"\n}",
+          "raw": "{\n  \"full_name\": \"Марія Шевченко\",\n  \"email\": \"maria.shevchenko@example.com\",\n  \"group_code\": \"КН-31\",\n  \"study_program\": \"Комп'ютерні науки\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -278,7 +278,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"full_name\": \"Інший Студент\",\n  \"email\": \"olena.koval@example.com\",\n  \"group_code\": \"КН-22\",\n  \"study_program\": \"Комп'ютерні науки\"\n}",
+          "raw": "{\n  \"full_name\": \"Інший Студент\",\n  \"email\": \"maria.shevchenko@example.com\",\n  \"group_code\": \"КН-22\",\n  \"study_program\": \"Комп'ютерні науки\"\n}",
           "options": {
             "raw": {
               "language": "json"
