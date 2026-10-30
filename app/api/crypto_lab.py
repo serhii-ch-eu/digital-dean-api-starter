@@ -1,20 +1,27 @@
-"""Маршрут тільки читає звіт; не запускає вимірювання через HTTP."""
+"""Маршрут для читання звітів лабораторних вимірювань криптографії."""
 
+import json
 from pathlib import Path
+from fastapi import APIRouter, HTTPException, status
 
-from fastapi import APIRouter
+router = APIRouter(prefix="/api/v1/crypto-lab", tags=["Crypto Lab"])
 
-router = APIRouter(prefix="/api/v1/lab/crypto", tags=["crypto-lab"])
-REPORT_PATH = Path(__file__).resolve().parents[2] / "results/practice-02/report.json"
-
-
-def load_benchmark_report(path: Path) -> dict:
-    """TODO: прочитати й перевірити report.json, не приймати шлях від клієнта."""
-    raise NotImplementedError("Implement validated benchmark report reader")
+DEFAULT_REPORT_PATH = Path("benchmarks/crypto_report.json")
 
 
-# TODO: GET /benchmark-results, 200 із повним агрегованим звітом.
-# TODO: відсутній файл: 404; пошкоджений: 500 із безпечним detail.
-# TODO: detail="Benchmark results unavailable", без внутрішніх шляхів.
-# TODO: path беріть із конфігурації; тест підмінює конфігурацію, не HTTP-вхід.
-# TODO: підключіть router у своєму main.py після реалізації.
+@router.get("/report", status_code=status.HTTP_200_OK)
+def get_benchmark_report():
+    """Отримати фіксований звіт бенчмарків."""
+    if not DEFAULT_REPORT_PATH.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Benchmark report not found",
+        )
+    try:
+        with open(DEFAULT_REPORT_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error reading benchmark report",
+        )

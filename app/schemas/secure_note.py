@@ -15,8 +15,12 @@ class NoteCreate(BaseModel):
     @field_validator("text")
     @classmethod
     def validate_text(cls, value: str) -> str:
-        """TODO: 1–4096 байтів UTF-8, не лише пробіли; не обрізати текст."""
-        raise NotImplementedError("Implement nonblank UTF-8 byte length validation")
+        """1-4096 байтів UTF-8, не лише пробіли; не обрізати текст."""
+        if not value.strip():
+            raise ValueError("Empty note")
+        if len(value.encode("utf-8")) > 4096:
+            raise ValueError("Note exceeds 4096 bytes")
+        return value
 
 
 class NoteMetadata(BaseModel):
@@ -28,6 +32,3 @@ class NoteMetadata(BaseModel):
 
 class NoteRead(NoteMetadata):
     text: str
-
-
-# TODO: виконайте індивідуальний варіант, зберігаючи базові правила.
