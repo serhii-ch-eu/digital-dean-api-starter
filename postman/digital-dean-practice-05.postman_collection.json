@@ -1,0 +1,665 @@
+{
+  "info": {
+    "_postman_id": "f5c9c7e3-5b46-4d23-8c90-0db37ac50505",
+    "name": "Digital Dean Practical 05",
+    "description": "Послідовні локальні перевірки реєстрації, входу, блокування та видалення синтетичних користувачів у практичній роботі №5.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName === \"Перевірка доступності /health\") {",
+          "  const token = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);",
+          "  pm.collectionVariables.set('run_token', token);",
+          "  pm.collectionVariables.set('inactive_login', 'p05i' + token);",
+          "  pm.collectionVariables.set('active_login', 'p05a' + token);",
+          "  pm.collectionVariables.set('unknown_login', 'p05u' + token);",
+          "  pm.collectionVariables.set('duplicate_login_email', 'dup-login.' + token + '@example.com');",
+          "  pm.collectionVariables.set('duplicate_email_login', 'p05e' + token);",
+          "  pm.collectionVariables.set('extra_field_login', 'p05x' + token);",
+          "  pm.collectionVariables.set('extra_field_email', 'p05x.' + token + '@example.com');",
+          "  pm.collectionVariables.set('invalid_status_login', 'p05s' + token);",
+          "  pm.collectionVariables.set('invalid_status_email', 'p05s.' + token + '@example.com');",
+          "  pm.collectionVariables.set('inactive_email', 'p05i.' + token + '@example.com');",
+          "  pm.collectionVariables.set('active_email', 'p05a.' + token + '@example.com');",
+          "  pm.collectionVariables.unset('inactive_user_id');",
+          "  pm.collectionVariables.unset('active_user_id');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Перевірка доступності /health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Реєстрація користувача з типовим inactive",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Навчальний користувач inactive\",\n  \"email\": \"{{inactive_email}}\",\n  \"login\": \"{{inactive_login}}\",\n  \"password\": \"{{test_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+              "pm.test('Відповідь містить лише публічні поля', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(Object.keys(body).sort()).to.eql(['email', 'id', 'login', 'name', 'status_id'].sort());",
+              "  pm.expect(body.id).to.be.a('number');",
+              "});",
+              "pm.test('Типовий статус — inactive', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.status_id).to.eql(0);",
+              "  pm.collectionVariables.set('inactive_user_id', String(body.id));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Вхід inactive-користувача",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{inactive_login}}\",\n  \"password\": \"{{test_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Inactive-користувач не може увійти', function () { pm.expect(pm.response.text()).to.eql('false'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Реєстрація active-користувача",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Навчальний користувач active\",\n  \"email\": \"{{active_email}}\",\n  \"login\": \"{{active_login}}\",\n  \"password\": \"{{test_password}}\",\n  \"status_id\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+              "pm.test('Відповідь містить лише публічні поля', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(Object.keys(body).sort()).to.eql(['email', 'id', 'login', 'name', 'status_id'].sort());",
+              "  pm.expect(body.id).to.be.a('number');",
+              "});",
+              "pm.test('Збережено active status_id', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.status_id).to.eql(1);",
+              "  pm.collectionVariables.set('active_user_id', String(body.id));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Вхід active-користувача з правильним паролем",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{active_login}}\",\n  \"password\": \"{{test_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Правильний пароль active-користувача прийнято', function () { pm.expect(pm.response.text()).to.eql('true'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Вхід із неправильним паролем",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{active_login}}\",\n  \"password\": \"Definitely wrong Practice 05!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Неправильний пароль відхилено', function () { pm.expect(pm.response.text()).to.eql('false'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Вхід із невідомим логіном",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{unknown_login}}\",\n  \"password\": \"{{test_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Невідомий логін відхилено', function () { pm.expect(pm.response.text()).to.eql('false'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Повторна реєстрація login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Дублікат логіна\",\n  \"email\": \"{{duplicate_login_email}}\",\n  \"login\": \"{{active_login}}\",\n  \"password\": \"{{test_password}}\",\n  \"status_id\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', function () { pm.response.to.have.status(409); });",
+              "pm.test('Безпечне повідомлення про дублікат', function () {",
+              "  pm.expect(pm.response.json().detail).to.eql('user already exists');",
+              "  pm.expect(pm.response.text()).not.to.include(pm.collectionVariables.get('test_password'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Повторна реєстрація email",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Дублікат email\",\n  \"email\": \"{{active_email}}\",\n  \"login\": \"{{duplicate_email_login}}\",\n  \"password\": \"{{test_password}}\",\n  \"status_id\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', function () { pm.response.to.have.status(409); });",
+              "pm.test('Безпечне повідомлення про дублікат', function () {",
+              "  pm.expect(pm.response.json().detail).to.eql('user already exists');",
+              "  pm.expect(pm.response.text()).not.to.include(pm.collectionVariables.get('test_password'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Реєстрація із зайвим полем",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Некоректна реєстрація extra\",\n  \"email\": \"{{extra_field_email}}\",\n  \"login\": \"{{extra_field_login}}\",\n  \"password\": \"{{test_password}}\",\n  \"unexpected_field\": \"synthetic-extra\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
+              "pm.test('Помилка не розкриває конфіденційні дані', function () {",
+              "  const text = pm.response.text();",
+              "  const lower = text.toLowerCase();",
+              "  pm.expect(text).not.to.include(pm.collectionVariables.get('test_password'));",
+              "  pm.expect(lower).not.to.include('\"input\":');",
+              "  pm.expect(lower).not.to.include('\"ctx\":');",
+              "  pm.expect(lower).not.to.include('sql');",
+              "  pm.expect(lower).not.to.include('digital-dean.sqlite');",
+              "  const detail = pm.response.json().detail || [];",
+              "  detail.forEach(function (entry) {",
+              "    pm.expect(entry).not.to.have.property('input');",
+              "    pm.expect(entry).not.to.have.property('ctx');",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Реєстрація з некоректним status_id",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Некоректна реєстрація status\",\n  \"email\": \"{{invalid_status_email}}\",\n  \"login\": \"{{invalid_status_login}}\",\n  \"password\": \"{{test_password}}\",\n  \"status_id\": 9\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
+              "pm.test('Помилка не розкриває конфіденційні дані', function () {",
+              "  const text = pm.response.text();",
+              "  const lower = text.toLowerCase();",
+              "  pm.expect(text).not.to.include(pm.collectionVariables.get('test_password'));",
+              "  pm.expect(lower).not.to.include('\"input\":');",
+              "  pm.expect(lower).not.to.include('\"ctx\":');",
+              "  pm.expect(lower).not.to.include('sql');",
+              "  pm.expect(lower).not.to.include('digital-dean.sqlite');",
+              "  const detail = pm.response.json().detail || [];",
+              "  detail.forEach(function (entry) {",
+              "    pm.expect(entry).not.to.have.property('input');",
+              "    pm.expect(entry).not.to.have.property('ctx');",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Блокування active-користувача",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": "{{base_url}}/api/v1/users/{{active_user_id}}/block"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Користувач заблокований і відповідь публічна', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(Object.keys(body).sort()).to.eql(['email', 'id', 'login', 'name', 'status_id'].sort());",
+              "  pm.expect(body.status_id).to.eql(2);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Повторне блокування",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": "{{base_url}}/api/v1/users/{{active_user_id}}/block"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Повторне блокування успішне', function () { pm.response.to.have.status(200); });",
+            "pm.test('Відповідь містить лише публічні поля та status_id=2', function () {",
+            "  const body = pm.response.json();",
+            "  pm.expect(Object.keys(body).sort()).to.eql(['email', 'id', 'login', 'name', 'status_id'].sort());",
+            "  pm.expect(body.status_id).to.eql(2);",
+            "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Вхід заблокованого користувача",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{active_login}}\",\n  \"password\": \"{{test_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Заблокований користувач не може увійти', function () { pm.expect(pm.response.text()).to.eql('false'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Видалення active-користувача",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/api/v1/users/{{active_user_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 204', function () { pm.response.to.have.status(204); });",
+              "pm.test('Тіло відповіді порожнє', function () { pm.expect(pm.response.text()).to.eql(''); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Вхід видаленого користувача",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{active_login}}\",\n  \"password\": \"{{test_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Видалений користувач не може увійти', function () { pm.expect(pm.response.text()).to.eql('false'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Повторне видалення",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/api/v1/users/{{active_user_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', function () { pm.response.to.have.status(404); });",
+              "pm.test('Безпечне повідомлення про відсутнього користувача', function () { pm.expect(pm.response.json().detail).to.eql('user not found'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Блокування відсутнього користувача",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": "{{base_url}}/api/v1/users/{{active_user_id}}/block"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', function () { pm.response.to.have.status(404); });",
+              "pm.test('Безпечне повідомлення про відсутнього користувача', function () { pm.expect(pm.response.json().detail).to.eql('user not found'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Видалення тестового inactive-користувача",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/api/v1/users/{{inactive_user_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 204', function () { pm.response.to.have.status(204); });",
+              "pm.test('Тіло відповіді порожнє', function () { pm.expect(pm.response.text()).to.eql(''); });",
+              "pm.collectionVariables.unset('run_token');"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "test_password",
+      "value": "Learning only Practice 05!"
+    },
+    {
+      "key": "run_token",
+      "value": ""
+    },
+    {
+      "key": "inactive_user_id",
+      "value": ""
+    },
+    {
+      "key": "active_user_id",
+      "value": ""
+    }
+  ]
+}
