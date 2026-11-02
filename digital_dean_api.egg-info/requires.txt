@@ -1,0 +1,9 @@
+fastapi<1.0,>=0.115
+pydantic[email]<3.0,>=2.8
+uvicorn[standard]<1.0,>=0.30
+cryptography==48.0.1
+pycryptodome==3.24.0
+
+[dev]
+httpx<1.0,>=0.27
+pytest<10.0,>=8.3
