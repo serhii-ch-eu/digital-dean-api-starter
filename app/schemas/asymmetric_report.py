@@ -92,7 +92,62 @@ class BenchmarkResponse(BenchmarkReport):
 
 def validate_complete_report(data: object) -> BenchmarkReport:
     report = BenchmarkReport.model_validate(data)
-    # TODO exact coverage/uniqueness; metadata sizes and UTC; dimensions;
-    # expected envelope lengths; throughput formula; check coverage.
-    # False check values are evidence of failure: retain them, do not hide.
-    raise NotImplementedError("Implement semantic validation after structural validation")
+    
+    # 1. Перевірка формату часу (UTC)
+    if not (report.experiment.created_at_utc.endswith("Z") or "+00:00" in report.experiment.created_at_utc):
+        raise ValueError("created_at_utc має бути у форматі UTC (ISO 8601)")
+
+    # 2. Повнота та унікальність генерації ключів (4 унікальні профілі)
+    key_profiles = {k.key_profile for k in report.key_generation}
+    if len(key_profiles) != 4:
+        raise ValueError("key_generation має містити рівно 4 унікальні профілі ключів")
+
+    # 3. Перевірка комбінацій результатів (22 унікальні комбінації)
+    result_keys = {(r.profile, r.operation, r.payload_bytes) for r in report.results}
+    if len(result_keys) != 22:
+        raise ValueError("results має містити рівно 22 унікальні комбінації (profile, operation, payload_bytes)")
+
+    # 4. Семантика результатів: розміри конвертів та розрахунок пропускної здатності
+    for r in report.results:
+        # Очікувані розміри згідно з Таблицею 2
+        expected_bytes = 0
+        if r.profile == "rsa2048-oaep":
+            expected_bytes = 256
+        elif r.profile == "rsa3072-oaep":
+            expected_bytes = 384
+        elif r.profile == "rsa3072-oaep-aes256gcm":
+            expected_bytes = r.payload_bytes + 412
+        elif r.profile == "hpke-x25519-aes256gcm":
+            expected_bytes = r.payload_bytes + 48
+        elif r.profile == "hpke-p256-aes256gcm":
+            expected_bytes = r.payload_bytes + 81
+            
+        if r.ciphertext_bytes != expected_bytes:
+            raise ValueError(
+                f"Некоректний ciphertext_bytes для {r.profile} з payload_bytes={r.payload_bytes}. "
+                f"Очікується {expected_bytes}, отримано {r.ciphertext_bytes}"
+            )
+
+        # Перевірка throughput_mib_s
+        if r.group == "direct":
+            if r.throughput_mib_s is not None:
+                raise ValueError(f"throughput_mib_s має бути null для direct профілю {r.profile}")
+        else:
+            if r.throughput_mib_s is None:
+                raise ValueError(f"throughput_mib_s обов'язковий для гібридного профілю {r.profile}")
+            
+            # v = (S * 10^9) / (2^20 * t_m) згідно з Формулою 3
+            expected_throughput = (r.payload_bytes * 10**9) / ((1 << 20) * r.median_ns)
+            # Допускаємо невелику похибку округлення для чисел із рухомою комою
+            if abs(r.throughput_mib_s - expected_throughput) > 0.01:
+                raise ValueError(
+                    f"Помилка розрахунку пропускної здатності для {r.profile}. "
+                    f"Очікується {expected_throughput:.2f}, отримано {r.throughput_mib_s}"
+                )
+
+    # 5. Унікальність перевірок (22 унікальні комбінації)
+    check_keys = {(c.profile, c.name) for c in report.checks}
+    if len(check_keys) != 22:
+        raise ValueError("checks має містити рівно 22 унікальні комбінації перевірок")
+
+    return report

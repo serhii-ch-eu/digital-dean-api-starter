@@ -4,323 +4,323 @@
     "algorithm": "AES-128-GCM",
     "size_bytes": 1024,
     "operation": "seal",
-    "median_ns": 3288.0,
-    "iqr_ns": 5.0,
-    "mib_per_sec": 297.01
+    "median_ns": 2958.0,
+    "iqr_ns": 248.0,
+    "mib_per_sec": 330.14
   },
   "cryptography_AES-128-GCM_1024_open": {
     "backend": "cryptography",
     "algorithm": "AES-128-GCM",
     "size_bytes": 1024,
     "operation": "open",
-    "median_ns": 2806.0,
-    "iqr_ns": 9.0,
-    "mib_per_sec": 348.03
+    "median_ns": 2525.0,
+    "iqr_ns": 42.0,
+    "mib_per_sec": 386.76
   },
   "cryptography_AES-128-GCM_65536_seal": {
     "backend": "cryptography",
     "algorithm": "AES-128-GCM",
     "size_bytes": 65536,
     "operation": "seal",
-    "median_ns": 14284.0,
-    "iqr_ns": 11.0,
-    "mib_per_sec": 4375.53
+    "median_ns": 13326.0,
+    "iqr_ns": 203.0,
+    "mib_per_sec": 4690.08
   },
   "cryptography_AES-128-GCM_65536_open": {
     "backend": "cryptography",
     "algorithm": "AES-128-GCM",
     "size_bytes": 65536,
     "operation": "open",
-    "median_ns": 16941.0,
-    "iqr_ns": 22.0,
-    "mib_per_sec": 3689.27
+    "median_ns": 16058.0,
+    "iqr_ns": 206.0,
+    "mib_per_sec": 3892.14
   },
   "cryptography_AES-128-GCM_1048576_seal": {
     "backend": "cryptography",
     "algorithm": "AES-128-GCM",
     "size_bytes": 1048576,
     "operation": "seal",
-    "median_ns": 722375.0,
-    "iqr_ns": 17308.0,
-    "mib_per_sec": 1384.32
+    "median_ns": 736371.0,
+    "iqr_ns": 25298.0,
+    "mib_per_sec": 1358.01
   },
   "cryptography_AES-128-GCM_1048576_open": {
     "backend": "cryptography",
     "algorithm": "AES-128-GCM",
     "size_bytes": 1048576,
     "operation": "open",
-    "median_ns": 775588.0,
-    "iqr_ns": 35176.0,
-    "mib_per_sec": 1289.34
+    "median_ns": 766209.0,
+    "iqr_ns": 16381.0,
+    "mib_per_sec": 1305.13
   },
   "cryptography_AES-256-GCM_1024_seal": {
     "backend": "cryptography",
     "algorithm": "AES-256-GCM",
     "size_bytes": 1024,
     "operation": "seal",
-    "median_ns": 2928.0,
-    "iqr_ns": 5.0,
-    "mib_per_sec": 333.53
+    "median_ns": 2582.0,
+    "iqr_ns": 77.0,
+    "mib_per_sec": 378.22
   },
   "cryptography_AES-256-GCM_1024_open": {
     "backend": "cryptography",
     "algorithm": "AES-256-GCM",
     "size_bytes": 1024,
     "operation": "open",
-    "median_ns": 2901.0,
-    "iqr_ns": 34.0,
-    "mib_per_sec": 336.63
+    "median_ns": 2624.0,
+    "iqr_ns": 1402.0,
+    "mib_per_sec": 372.17
   },
   "cryptography_AES-256-GCM_65536_seal": {
     "backend": "cryptography",
     "algorithm": "AES-256-GCM",
     "size_bytes": 65536,
     "operation": "seal",
-    "median_ns": 16550.0,
-    "iqr_ns": 17.0,
-    "mib_per_sec": 3776.44
+    "median_ns": 14009.0,
+    "iqr_ns": 485.0,
+    "mib_per_sec": 4461.42
   },
   "cryptography_AES-256-GCM_65536_open": {
     "backend": "cryptography",
     "algorithm": "AES-256-GCM",
     "size_bytes": 65536,
     "operation": "open",
-    "median_ns": 19015.0,
-    "iqr_ns": 204.0,
-    "mib_per_sec": 3286.88
+    "median_ns": 18230.0,
+    "iqr_ns": 145.0,
+    "mib_per_sec": 3428.41
   },
   "cryptography_AES-256-GCM_1048576_seal": {
     "backend": "cryptography",
     "algorithm": "AES-256-GCM",
     "size_bytes": 1048576,
     "operation": "seal",
-    "median_ns": 763289.0,
-    "iqr_ns": 3882.0,
-    "mib_per_sec": 1310.12
+    "median_ns": 753137.0,
+    "iqr_ns": 18588.0,
+    "mib_per_sec": 1327.78
   },
   "cryptography_AES-256-GCM_1048576_open": {
     "backend": "cryptography",
     "algorithm": "AES-256-GCM",
     "size_bytes": 1048576,
     "operation": "open",
-    "median_ns": 962592.0,
-    "iqr_ns": 130545.0,
-    "mib_per_sec": 1038.86
+    "median_ns": 775220.0,
+    "iqr_ns": 19740.0,
+    "mib_per_sec": 1289.96
   },
   "cryptography_ChaCha20-Poly1305_1024_seal": {
     "backend": "cryptography",
     "algorithm": "ChaCha20-Poly1305",
     "size_bytes": 1024,
     "operation": "seal",
-    "median_ns": 5100.0,
-    "iqr_ns": 133.0,
-    "mib_per_sec": 191.48
+    "median_ns": 3477.0,
+    "iqr_ns": 106.0,
+    "mib_per_sec": 280.86
   },
   "cryptography_ChaCha20-Poly1305_1024_open": {
     "backend": "cryptography",
     "algorithm": "ChaCha20-Poly1305",
     "size_bytes": 1024,
     "operation": "open",
-    "median_ns": 4611.0,
-    "iqr_ns": 21.0,
-    "mib_per_sec": 211.79
+    "median_ns": 2987.0,
+    "iqr_ns": 460.0,
+    "mib_per_sec": 326.94
   },
   "cryptography_ChaCha20-Poly1305_65536_seal": {
     "backend": "cryptography",
     "algorithm": "ChaCha20-Poly1305",
     "size_bytes": 65536,
     "operation": "seal",
-    "median_ns": 53567.0,
-    "iqr_ns": 1454.0,
-    "mib_per_sec": 1166.76
+    "median_ns": 32877.0,
+    "iqr_ns": 2707.0,
+    "mib_per_sec": 1901.03
   },
   "cryptography_ChaCha20-Poly1305_65536_open": {
     "backend": "cryptography",
     "algorithm": "ChaCha20-Poly1305",
     "size_bytes": 65536,
     "operation": "open",
-    "median_ns": 54674.0,
-    "iqr_ns": 229.0,
-    "mib_per_sec": 1143.14
+    "median_ns": 39617.0,
+    "iqr_ns": 4656.0,
+    "mib_per_sec": 1577.61
   },
   "cryptography_ChaCha20-Poly1305_1048576_seal": {
     "backend": "cryptography",
     "algorithm": "ChaCha20-Poly1305",
     "size_bytes": 1048576,
     "operation": "seal",
-    "median_ns": 5263273.0,
-    "iqr_ns": 1074596.0,
-    "mib_per_sec": 190.0
+    "median_ns": 2116807.0,
+    "iqr_ns": 3976077.0,
+    "mib_per_sec": 472.41
   },
   "cryptography_ChaCha20-Poly1305_1048576_open": {
     "backend": "cryptography",
     "algorithm": "ChaCha20-Poly1305",
     "size_bytes": 1048576,
     "operation": "open",
-    "median_ns": 5342471.0,
-    "iqr_ns": 351871.0,
-    "mib_per_sec": 187.18
+    "median_ns": 5067104.0,
+    "iqr_ns": 52037.0,
+    "mib_per_sec": 197.35
   },
   "pycryptodome_AES-128-GCM_1024_seal": {
     "backend": "pycryptodome",
     "algorithm": "AES-128-GCM",
     "size_bytes": 1024,
     "operation": "seal",
-    "median_ns": 245483.0,
-    "iqr_ns": 2038.0,
-    "mib_per_sec": 3.98
+    "median_ns": 222603.0,
+    "iqr_ns": 4788.0,
+    "mib_per_sec": 4.39
   },
   "pycryptodome_AES-128-GCM_1024_open": {
     "backend": "pycryptodome",
     "algorithm": "AES-128-GCM",
     "size_bytes": 1024,
     "operation": "open",
-    "median_ns": 317763.0,
-    "iqr_ns": 614.0,
-    "mib_per_sec": 3.07
+    "median_ns": 291285.0,
+    "iqr_ns": 5992.0,
+    "mib_per_sec": 3.35
   },
   "pycryptodome_AES-128-GCM_65536_seal": {
     "backend": "pycryptodome",
     "algorithm": "AES-128-GCM",
     "size_bytes": 65536,
     "operation": "seal",
-    "median_ns": 473206.0,
-    "iqr_ns": 12110.0,
-    "mib_per_sec": 132.08
+    "median_ns": 352398.0,
+    "iqr_ns": 8888.0,
+    "mib_per_sec": 177.36
   },
   "pycryptodome_AES-128-GCM_65536_open": {
     "backend": "pycryptodome",
     "algorithm": "AES-128-GCM",
     "size_bytes": 65536,
     "operation": "open",
-    "median_ns": 547767.0,
-    "iqr_ns": 4250.0,
-    "mib_per_sec": 114.1
+    "median_ns": 399023.0,
+    "iqr_ns": 3215.0,
+    "mib_per_sec": 156.63
   },
   "pycryptodome_AES-128-GCM_1048576_seal": {
     "backend": "pycryptodome",
     "algorithm": "AES-128-GCM",
     "size_bytes": 1048576,
     "operation": "seal",
-    "median_ns": 5276397.0,
-    "iqr_ns": 149641.0,
-    "mib_per_sec": 189.52
+    "median_ns": 1217783.0,
+    "iqr_ns": 63659.0,
+    "mib_per_sec": 821.16
   },
   "pycryptodome_AES-128-GCM_1048576_open": {
     "backend": "pycryptodome",
     "algorithm": "AES-128-GCM",
     "size_bytes": 1048576,
     "operation": "open",
-    "median_ns": 4919934.0,
-    "iqr_ns": 538557.0,
-    "mib_per_sec": 203.25
+    "median_ns": 1515833.0,
+    "iqr_ns": 1515866.0,
+    "mib_per_sec": 659.7
   },
   "pycryptodome_AES-256-GCM_1024_seal": {
     "backend": "pycryptodome",
     "algorithm": "AES-256-GCM",
     "size_bytes": 1024,
     "operation": "seal",
-    "median_ns": 257104.0,
-    "iqr_ns": 344.0,
-    "mib_per_sec": 3.8
+    "median_ns": 235592.0,
+    "iqr_ns": 2214.0,
+    "mib_per_sec": 4.15
   },
   "pycryptodome_AES-256-GCM_1024_open": {
     "backend": "pycryptodome",
     "algorithm": "AES-256-GCM",
     "size_bytes": 1024,
     "operation": "open",
-    "median_ns": 282763.0,
-    "iqr_ns": 16690.0,
-    "mib_per_sec": 3.45
+    "median_ns": 306623.0,
+    "iqr_ns": 14285.0,
+    "mib_per_sec": 3.18
   },
   "pycryptodome_AES-256-GCM_65536_seal": {
     "backend": "pycryptodome",
     "algorithm": "AES-256-GCM",
     "size_bytes": 65536,
     "operation": "seal",
-    "median_ns": 535184.0,
-    "iqr_ns": 2585.0,
-    "mib_per_sec": 116.78
+    "median_ns": 119879.0,
+    "iqr_ns": 529.0,
+    "mib_per_sec": 521.36
   },
   "pycryptodome_AES-256-GCM_65536_open": {
     "backend": "pycryptodome",
     "algorithm": "AES-256-GCM",
     "size_bytes": 65536,
     "operation": "open",
-    "median_ns": 606192.0,
-    "iqr_ns": 7181.0,
-    "mib_per_sec": 103.1
+    "median_ns": 270847.0,
+    "iqr_ns": 248823.0,
+    "mib_per_sec": 230.76
   },
   "pycryptodome_AES-256-GCM_1048576_seal": {
     "backend": "pycryptodome",
     "algorithm": "AES-256-GCM",
     "size_bytes": 1048576,
     "operation": "seal",
-    "median_ns": 5850307.0,
-    "iqr_ns": 26793.0,
-    "mib_per_sec": 170.93
+    "median_ns": 3617576.0,
+    "iqr_ns": 68669.0,
+    "mib_per_sec": 276.43
   },
   "pycryptodome_AES-256-GCM_1048576_open": {
     "backend": "pycryptodome",
     "algorithm": "AES-256-GCM",
     "size_bytes": 1048576,
     "operation": "open",
-    "median_ns": 5695618.0,
-    "iqr_ns": 397439.0,
-    "mib_per_sec": 175.57
+    "median_ns": 1468720.0,
+    "iqr_ns": 1660633.0,
+    "mib_per_sec": 680.86
   },
   "pycryptodome_ChaCha20-Poly1305_1024_seal": {
     "backend": "pycryptodome",
     "algorithm": "ChaCha20-Poly1305",
     "size_bytes": 1024,
     "operation": "seal",
-    "median_ns": 107712.0,
-    "iqr_ns": 13281.0,
-    "mib_per_sec": 9.07
+    "median_ns": 127929.0,
+    "iqr_ns": 3221.0,
+    "mib_per_sec": 7.63
   },
   "pycryptodome_ChaCha20-Poly1305_1024_open": {
     "backend": "pycryptodome",
     "algorithm": "ChaCha20-Poly1305",
     "size_bytes": 1024,
     "operation": "open",
-    "median_ns": 192929.0,
-    "iqr_ns": 4678.0,
-    "mib_per_sec": 5.06
+    "median_ns": 191519.0,
+    "iqr_ns": 2592.0,
+    "mib_per_sec": 5.1
   },
   "pycryptodome_ChaCha20-Poly1305_65536_seal": {
     "backend": "pycryptodome",
     "algorithm": "ChaCha20-Poly1305",
     "size_bytes": 65536,
     "operation": "seal",
-    "median_ns": 1024891.0,
-    "iqr_ns": 100719.0,
-    "mib_per_sec": 60.98
+    "median_ns": 970376.0,
+    "iqr_ns": 24740.0,
+    "mib_per_sec": 64.41
   },
   "pycryptodome_ChaCha20-Poly1305_65536_open": {
     "backend": "pycryptodome",
     "algorithm": "ChaCha20-Poly1305",
     "size_bytes": 65536,
     "operation": "open",
-    "median_ns": 906435.0,
-    "iqr_ns": 270531.0,
-    "mib_per_sec": 68.95
+    "median_ns": 1034094.0,
+    "iqr_ns": 19666.0,
+    "mib_per_sec": 60.44
   },
   "pycryptodome_ChaCha20-Poly1305_1048576_seal": {
     "backend": "pycryptodome",
     "algorithm": "ChaCha20-Poly1305",
     "size_bytes": 1048576,
     "operation": "seal",
-    "median_ns": 15129866.0,
-    "iqr_ns": 1752011.0,
-    "mib_per_sec": 66.09
+    "median_ns": 15227508.0,
+    "iqr_ns": 635144.0,
+    "mib_per_sec": 65.67
   },
   "pycryptodome_ChaCha20-Poly1305_1048576_open": {
     "backend": "pycryptodome",
     "algorithm": "ChaCha20-Poly1305",
     "size_bytes": 1048576,
     "operation": "open",
-    "median_ns": 16721491.0,
-    "iqr_ns": 146299.0,
-    "mib_per_sec": 59.8
+    "median_ns": 14597314.0,
+    "iqr_ns": 644803.0,
+    "mib_per_sec": 68.51
   }
 }

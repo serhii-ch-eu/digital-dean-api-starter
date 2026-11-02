@@ -1,9 +1,12 @@
 """Додайте новий маршрут та підключення до наявного app/main.py."""
 import json
 from pathlib import Path
-from fastapi import APIRouter, HTTPException
+from typing import Literal, Optional
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import ValidationError
-from app.schemas.asymmetric_report import BenchmarkReport, validate_complete_report
+
+# Переконайтеся, що ви імпортуєте BenchmarkResponse, який створили раніше
+from app.schemas.asymmetric_report import BenchmarkReport, BenchmarkResponse, validate_complete_report
 
 router = APIRouter(prefix="/api/v1/lab/crypto", tags=["asymmetric-lab"])
 REPORT_PATH = Path(__file__).resolve().parents[2] / "results/practice-03/report.json"
@@ -38,8 +41,20 @@ def load_report() -> BenchmarkReport:
         raise HTTPException(500, "benchmark report invalid") from exc
 
 
-def get_asymmetric_benchmark_results() -> BenchmarkReport:
-    # TODO register @router.get("/asymmetric-benchmark-results", response_model=...)
-    # TODO return validated report and implement the individual variant.
-    # Do not import/run the benchmark here or accept a client file path.
-    raise NotImplementedError("Implement the new API operation")
+@router.get("/asymmetric-benchmark-results", response_model=BenchmarkResponse)
+def get_asymmetric_benchmark_results(
+    operation: Optional[Literal["encrypt", "decrypt"]] = Query(
+        None, description="Фільтр результатів за криптографічною операцією"
+    )
+):
+    report = load_report()
+    
+    # Конвертуємо у словник для формування відповіді
+    response_data = report.model_dump()
+    
+    # Застосовуємо фільтрацію за варіантом (залишаємо key_generation та checks недоторканими)
+    if operation:
+        filtered_results = [r for r in response_data["results"] if r["operation"] == operation]
+        response_data["results"] = filtered_results
+
+    return response_data

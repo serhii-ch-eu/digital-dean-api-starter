@@ -6,19 +6,23 @@ from fastapi import APIRouter, HTTPException, status
 
 router = APIRouter(prefix="/api/v1/crypto-lab", tags=["Crypto Lab"])
 
-DEFAULT_REPORT_PATH = Path("benchmarks/crypto_report.json")
+DEFAULT_REPORT_PATH = Path("benchmarks/report.json")
 
 
 @router.get("/report", status_code=status.HTTP_200_OK)
 def get_benchmark_report():
     """Отримати фіксований звіт бенчмарків."""
-    if not DEFAULT_REPORT_PATH.exists():
+    path = DEFAULT_REPORT_PATH
+    if not path.exists():
+        path = Path("benchmarks/crypto_report.json")
+
+    if not path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Benchmark report not found",
         )
     try:
-        with open(DEFAULT_REPORT_PATH, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         raise HTTPException(
