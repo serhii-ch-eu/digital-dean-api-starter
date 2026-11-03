@@ -1,0 +1,1920 @@
+{
+  "info": {
+    "name": "Digital Dean Practical 06 JWT and RBAC",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "LOCAL synthetic accounts only. JWT access and exact role/object policy. Set lab_password in a LOCAL environment. No production server. Tokens are cleared at the last step, not revoked. A graded course intentionally remains as evidence."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "lab_password",
+      "value": ""
+    },
+    {
+      "key": "admin_login",
+      "value": "lab_admin"
+    },
+    {
+      "key": "manager_login",
+      "value": "lab_manager"
+    },
+    {
+      "key": "teacher_a_login",
+      "value": "lab_teacher_a"
+    },
+    {
+      "key": "teacher_b_login",
+      "value": "lab_teacher_b"
+    },
+    {
+      "key": "student_a_login",
+      "value": "lab_student_a"
+    },
+    {
+      "key": "student_b_login",
+      "value": "lab_student_b"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const base = pm.variables.get(\"base_url\");",
+          "if (base !== \"http://127.0.0.1:8000\") {",
+          "  pm.execution.skipRequest();",
+          "  throw new Error(\"Only the local disposable teaching API is allowed\");",
+          "}",
+          "if (pm.info.requestName === \"01 health\") {",
+          "  pm.collectionVariables.set(\"run_tag\", pm.variables.replaceIn(\"{{$guid}}\").replace(/-/g, \"\"));",
+          "  for (const role of [\"admin\",\"manager\",\"teacher_a\",\"teacher_b\",\"student_a\",\"student_b\"]) {",
+          "    pm.collectionVariables.unset(role + \"_token\");",
+          "    pm.collectionVariables.unset(role + \"_id\");",
+          "  }",
+          "  for (const key of [\"course_id\",\"other_course_id\",\"tampered_token\"])",
+          "    pm.collectionVariables.unset(key);",
+          "}",
+          "if (pm.info.requestName.includes(\"login\") && !pm.variables.get(\"lab_password\")) {",
+          "  pm.execution.skipRequest();",
+          "  throw new Error(\"Set an ephemeral lab_password in your LOCAL Postman environment\");",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.expect(pm.response.json()).to.eql({status:\"ok\"});",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 login admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{admin_login}}\",\n  \"password\": \"{{lab_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.collectionVariables.set(\"admin_token\", String(pm.response.json().access_token));",
+              "  const body = pm.response.json();",
+              "  pm.expect(Object.keys(body).sort()).to.eql([\"access_token\",\"expires_in\",\"token_type\"]);",
+              "  pm.expect(body.access_token).to.be.a(\"string\");",
+              "  pm.expect(body.token_type).to.eql(\"bearer\");",
+              "  pm.expect(body.expires_in).to.eql(900);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 identity admin",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.collectionVariables.set(\"admin_id\", String(pm.response.json().id));",
+              "  pm.expect(pm.response.json().role).to.eql(\"admin\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 login manager",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{manager_login}}\",\n  \"password\": \"{{lab_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.collectionVariables.set(\"manager_token\", String(pm.response.json().access_token));",
+              "  const body = pm.response.json();",
+              "  pm.expect(Object.keys(body).sort()).to.eql([\"access_token\",\"expires_in\",\"token_type\"]);",
+              "  pm.expect(body.access_token).to.be.a(\"string\");",
+              "  pm.expect(body.token_type).to.eql(\"bearer\");",
+              "  pm.expect(body.expires_in).to.eql(900);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 identity manager",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.collectionVariables.set(\"manager_id\", String(pm.response.json().id));",
+              "  pm.expect(pm.response.json().role).to.eql(\"manager\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 login teacher_a",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{teacher_a_login}}\",\n  \"password\": \"{{lab_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.collectionVariables.set(\"teacher_a_token\", String(pm.response.json().access_token));",
+              "  const body = pm.response.json();",
+              "  pm.expect(Object.keys(body).sort()).to.eql([\"access_token\",\"expires_in\",\"token_type\"]);",
+              "  pm.expect(body.access_token).to.be.a(\"string\");",
+              "  pm.expect(body.token_type).to.eql(\"bearer\");",
+              "  pm.expect(body.expires_in).to.eql(900);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 identity teacher_a",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{teacher_a_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.collectionVariables.set(\"teacher_a_id\", String(pm.response.json().id));",
+              "  pm.expect(pm.response.json().role).to.eql(\"teacher\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 login teacher_b",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{teacher_b_login}}\",\n  \"password\": \"{{lab_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.collectionVariables.set(\"teacher_b_token\", String(pm.response.json().access_token));",
+              "  const body = pm.response.json();",
+              "  pm.expect(Object.keys(body).sort()).to.eql([\"access_token\",\"expires_in\",\"token_type\"]);",
+              "  pm.expect(body.access_token).to.be.a(\"string\");",
+              "  pm.expect(body.token_type).to.eql(\"bearer\");",
+              "  pm.expect(body.expires_in).to.eql(900);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 identity teacher_b",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{teacher_b_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.collectionVariables.set(\"teacher_b_id\", String(pm.response.json().id));",
+              "  pm.expect(pm.response.json().role).to.eql(\"teacher\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 login student_a",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{student_a_login}}\",\n  \"password\": \"{{lab_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.collectionVariables.set(\"student_a_token\", String(pm.response.json().access_token));",
+              "  const body = pm.response.json();",
+              "  pm.expect(Object.keys(body).sort()).to.eql([\"access_token\",\"expires_in\",\"token_type\"]);",
+              "  pm.expect(body.access_token).to.be.a(\"string\");",
+              "  pm.expect(body.token_type).to.eql(\"bearer\");",
+              "  pm.expect(body.expires_in).to.eql(900);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 identity student_a",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{student_a_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.collectionVariables.set(\"student_a_id\", String(pm.response.json().id));",
+              "  pm.expect(pm.response.json().role).to.eql(\"student\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 login student_b",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{student_b_login}}\",\n  \"password\": \"{{lab_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.collectionVariables.set(\"student_b_token\", String(pm.response.json().access_token));",
+              "  const body = pm.response.json();",
+              "  pm.expect(Object.keys(body).sort()).to.eql([\"access_token\",\"expires_in\",\"token_type\"]);",
+              "  pm.expect(body.access_token).to.be.a(\"string\");",
+              "  pm.expect(body.token_type).to.eql(\"bearer\");",
+              "  pm.expect(body.expires_in).to.eql(900);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 identity student_b",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{student_b_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.collectionVariables.set(\"student_b_id\", String(pm.response.json().id));",
+              "  pm.expect(pm.response.json().role).to.eql(\"student\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 guest denied",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/v1/courses"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(401);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.expect(pm.response.headers.get(\"WWW-Authenticate\")).to.eql(\"Bearer\");",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 admin has no academic rights",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(403);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 manager cannot manage users",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(403);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17 manager creates course",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Lab course {{run_tag}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(201);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.collectionVariables.set(\"course_id\", String(pm.response.json().id));",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "18 manager creates other course",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Other course {{run_tag}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(201);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.collectionVariables.set(\"other_course_id\", String(pm.response.json().id));",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "19 assign first teacher",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/teachers/{{teacher_a_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "20 assign second teacher",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/teachers/{{teacher_b_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "21 assign other course teacher",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{other_course_id}}/teachers/{{teacher_b_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "22 manager enrolls student",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/students/{{student_a_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "23 teacher enrolls own course student",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{teacher_a_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/students/{{student_b_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "24 teacher cannot enroll other course",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{teacher_a_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{other_course_id}}/students/{{student_a_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(404);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "25 teacher cannot withdraw",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{teacher_a_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/students/{{student_b_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(403);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "26 student sees own course",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{student_a_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  const rows = pm.response.json();",
+              "  pm.expect(rows.some(x => x.id === Number(pm.collectionVariables.get(\"course_id\")))).to.eql(true);",
+              "  pm.expect(rows.some(x => x.id === Number(pm.collectionVariables.get(\"other_course_id\")))).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "27 teacher creates own grade",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{teacher_a_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/grades",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"student_id\": {{student_a_id}},\n  \"grade\": 88\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(201);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  const row = pm.response.json();",
+              "  pm.expect(row.teacher_id).to.eql(Number(pm.collectionVariables.get(\"teacher_a_id\")));",
+              "  pm.expect(row.student_id).to.eql(Number(pm.collectionVariables.get(\"student_a_id\")));",
+              "  pm.expect(row.grade).to.eql(88);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "28 other teacher cannot edit author",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{teacher_b_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/grades/{{student_a_id}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"grade\": 99\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(404);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "29 other teacher cannot overwrite grade",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{teacher_b_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/grades",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"student_id\": {{student_a_id}},\n  \"grade\": 99\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(409);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "30 teacher reads own authored grade",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{teacher_a_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/grades"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.expect(pm.response.json().every(x => x.teacher_id === Number(pm.collectionVariables.get(\"teacher_a_id\")))).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "31 second student cannot see first grade",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{student_b_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/me/grades"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.expect(pm.response.json().every(x => x.student_id === Number(pm.collectionVariables.get(\"student_b_id\")))).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "32 first student sees own grade",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{student_a_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/me/grades"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  const rows = pm.response.json();",
+              "  pm.expect(rows.every(x => x.student_id === Number(pm.collectionVariables.get(\"student_a_id\")))).to.eql(true);",
+              "  pm.expect(rows.some(x => x.course_id === Number(pm.collectionVariables.get(\"course_id\")) && x.grade === 88)).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "33 student cannot list course grades",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{student_a_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/grades"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(403);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "34 manager reads course grades",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/grades"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "35 manager cannot modify grade",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/grades/{{student_a_id}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"grade\": 99\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(403);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "36 forged teacher field rejected",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{teacher_a_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/grades",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"student_id\": {{student_a_id}},\n  \"grade\": 88,\n  \"teacher_id\": {{teacher_b_id}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(422);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "37 admin blocks first student",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users/{{student_a_id}}/block"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.expect(pm.response.json().status_id).to.eql(2);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "38 blocked old token denied",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{student_a_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/me/grades"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(401);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.expect(pm.response.headers.get(\"WWW-Authenticate\")).to.eql(\"Bearer\");",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "39 blocked login denied",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{student_a_login}}\",\n  \"password\": \"{{lab_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(401);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.expect(pm.response.headers.get(\"WWW-Authenticate\")).to.eql(\"Bearer\");",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "40 admin unblocks student",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users/{{student_a_id}}/status",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status_id\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "41 still-valid token after unblock",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{student_a_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/me/grades"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "42 manager withdraws student",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/students/{{student_a_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(204);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.expect(text).to.eql(\"\");",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "43 withdrawn course no longer current",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{student_a_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.expect(pm.response.json().some(x => x.id === Number(pm.collectionVariables.get(\"course_id\")))).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "44 historical grade preserved",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{student_a_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/me/grades"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.expect(pm.response.json().some(x => x.course_id === Number(pm.collectionVariables.get(\"course_id\")) && x.grade === 88)).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "45 course with grades cannot be deleted",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(409);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "46 manager removes teacher assignment",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/teachers/{{teacher_a_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(204);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.expect(text).to.eql(\"\");",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "47 removed teacher loses course access",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{teacher_a_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{course_id}}/grades"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(404);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "48 tampered token denied",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tampered_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const parts = pm.collectionVariables.get(\"manager_token\").split(\".\");",
+              "parts[2] = (parts[2][0] === \"A\" ? \"B\" : \"A\") + parts[2].slice(1);",
+              "pm.collectionVariables.set(\"tampered_token\", parts.join(\".\"));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(401);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.expect(pm.response.headers.get(\"WWW-Authenticate\")).to.eql(\"Bearer\");",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "49 manager deletes ungraded course",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{other_course_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(204);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  pm.expect(text).to.eql(\"\");",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "50 deleted course absent",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{manager_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/courses/{{other_course_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(404);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "51 clear local token variables",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"expected status and safe body\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const text = pm.response.text();",
+              "  pm.expect(text.includes('\"password\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"salt\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"input\"')).to.eql(false);",
+              "  pm.expect(text.includes('\"ctx\"')).to.eql(false);",
+              "  for (const role of [\"admin\",\"manager\",\"teacher_a\",\"teacher_b\",\"student_a\",\"student_b\"])",
+              "    pm.collectionVariables.unset(role + \"_token\");",
+              "  pm.collectionVariables.unset(\"tampered_token\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

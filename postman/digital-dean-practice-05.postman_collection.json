@@ -1,0 +1,611 @@
+{
+  "info": {
+    "name": "Digital Dean Practical 05",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Synthetic local accounts only. Run from the start. No production permissions, no database reset; only accounts created by this run are deleted."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if(pm.collectionVariables.get(\"base_url\")!==\"http://127.0.0.1:8000\"){pm.execution.skipRequest();throw new Error(\"Local disposable server on 127.0.0.1:8000 required\");}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Health and unique synthetic identifiers",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/health"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const seed = pm.variables.replaceIn(\"{{$guid}}\").replace(/-/g, \"\").slice(0, 16);",
+              "for (const kind of [\"active\", \"inactive\", \"extra\", \"unknown\", \"duplicate\"]) {",
+              "  pm.collectionVariables.set(kind + \"_login\", \"p5\" + kind.slice(0, 1) + \"_\" + seed);",
+              "}",
+              "pm.collectionVariables.unset(\"active_user_id\");",
+              "pm.collectionVariables.unset(\"inactive_user_id\");"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"healthy\",()=>{pm.response.to.have.status(200);pm.expect(pm.response.json()).to.eql({status:\"ok\"});});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Register inactive by default",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Навчальний користувач\", \"email\": \"{{inactive_login}}@example.com\", \"login\": \"{{inactive_login}}\", \"password\": \"Learning only 05!\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"created inactive\",()=>{pm.response.to.have.status(201);const b=pm.response.json();pm.expect(Object.keys(b).sort()).to.eql([\"email\",\"id\",\"login\",\"name\",\"status_id\"]);pm.expect(b.status_id).to.eql(0);pm.collectionVariables.set(\"inactive_user_id\",String(b.id));});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Inactive login denied",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\": \"{{inactive_login}}\", \"password\": \"Learning only 05!\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"JSON boolean false\",()=>{pm.response.to.have.status(200);pm.expect(pm.response.json()).to.eql(false);pm.expect(pm.response.text()).to.eql(\"false\");});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Register active",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Навчальний користувач\", \"email\": \"{{active_login}}@example.com\", \"login\": \"{{active_login}}\", \"password\": \"Learning only 05!\", \"status_id\": 1}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"safe created user\", () => {",
+              "  pm.response.to.have.status(201);",
+              "  const b = pm.response.json();",
+              "  pm.expect(Object.keys(b).sort()).to.eql(",
+              "    [\"email\", \"id\", \"login\", \"name\", \"status_id\"]);",
+              "  pm.expect(Number.isInteger(b.id)).to.eql(true);",
+              "  pm.expect(b.id).to.be.above(0);",
+              "  pm.collectionVariables.set(\"active_user_id\", String(b.id));",
+              "});",
+              "pm.test(\"active status\",()=>pm.expect(pm.response.json().status_id).to.eql(1));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Active login accepted",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\": \"{{active_login}}\", \"password\": \"Learning only 05!\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"JSON boolean true\",()=>{pm.response.to.have.status(200);pm.expect(pm.response.json()).to.eql(true);pm.expect(pm.response.text()).to.eql(\"true\");});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Wrong password denied",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\": \"{{active_login}}\", \"password\": \"Wrong password 05!\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"JSON boolean false\",()=>{pm.response.to.have.status(200);pm.expect(pm.response.json()).to.eql(false);pm.expect(pm.response.text()).to.eql(\"false\");});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Unknown login denied",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\": \"{{unknown_login}}\", \"password\": \"Learning only 05!\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"JSON boolean false\",()=>{pm.response.to.have.status(200);pm.expect(pm.response.json()).to.eql(false);pm.expect(pm.response.text()).to.eql(\"false\");});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Duplicate login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Навчальний користувач\", \"email\": \"{{duplicate_login}}@example.com\", \"login\": \"{{active_login}}\", \"password\": \"Learning only 05!\", \"status_id\": 1}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"safe 409\",()=>{pm.response.to.have.status(409);pm.expect(pm.response.json()).to.eql({detail:\"user already exists\"});});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Duplicate email",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Навчальний користувач\", \"email\": \"{{active_login}}@example.com\", \"login\": \"{{duplicate_login}}\", \"password\": \"Learning only 05!\", \"status_id\": 1}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"safe 409\",()=>{pm.response.to.have.status(409);pm.expect(pm.response.json()).to.eql({detail:\"user already exists\"});});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Client salt rejected",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Навчальний користувач\", \"email\": \"{{extra_login}}@example.com\", \"login\": \"{{extra_login}}\", \"password\": \"Learning only 05!\", \"salt\": \"client_salt\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"redacted 422\",()=>{pm.response.to.have.status(422);const b=pm.response.json();pm.expect(b).to.eql({detail:[{type:\"invalid_request\",loc:[\"request\"],msg:\"invalid input\"}]});pm.expect(pm.response.text().includes(\"Learning only 05!\")).to.eql(false);});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Unknown status rejected",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Навчальний користувач\", \"email\": \"{{extra_login}}@example.com\", \"login\": \"{{extra_login}}\", \"password\": \"Learning only 05!\", \"status_id\": 3}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"redacted 422\",()=>{pm.response.to.have.status(422);const b=pm.response.json();pm.expect(b).to.eql({detail:[{type:\"invalid_request\",loc:[\"request\"],msg:\"invalid input\"}]});pm.expect(pm.response.text().includes(\"Learning only 05!\")).to.eql(false);});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Block active account",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": "{{base_url}}/api/v1/users/{{active_user_id}}/block"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"blocked safely\",()=>{pm.response.to.have.status(200);const b=pm.response.json();pm.expect(Object.keys(b).sort()).to.eql([\"email\",\"id\",\"login\",\"name\",\"status_id\"]);pm.expect(String(b.id)).to.eql(pm.collectionVariables.get(\"active_user_id\"));pm.expect(b.status_id).to.eql(2);});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Repeat block safely",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": "{{base_url}}/api/v1/users/{{active_user_id}}/block"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"blocked safely\",()=>{pm.response.to.have.status(200);const b=pm.response.json();pm.expect(Object.keys(b).sort()).to.eql([\"email\",\"id\",\"login\",\"name\",\"status_id\"]);pm.expect(String(b.id)).to.eql(pm.collectionVariables.get(\"active_user_id\"));pm.expect(b.status_id).to.eql(2);});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 Blocked login denied",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\": \"{{active_login}}\", \"password\": \"Learning only 05!\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"JSON boolean false\",()=>{pm.response.to.have.status(200);pm.expect(pm.response.json()).to.eql(false);pm.expect(pm.response.text()).to.eql(\"false\");});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 Delete own unreferenced active account",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/api/v1/users/{{active_user_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"204 empty\",()=>{pm.response.to.have.status(204);pm.expect(pm.response.text()).to.eql(\"\");});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 Deleted login denied",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\": \"{{active_login}}\", \"password\": \"Learning only 05!\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"JSON boolean false\",()=>{pm.response.to.have.status(200);pm.expect(pm.response.json()).to.eql(false);pm.expect(pm.response.text()).to.eql(\"false\");});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17 Repeat delete returns missing",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/api/v1/users/{{active_user_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"safe 404\",()=>{pm.response.to.have.status(404);pm.expect(pm.response.json()).to.eql({detail:\"user not found\"});});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "18 Block deleted returns missing",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": "{{base_url}}/api/v1/users/{{active_user_id}}/block"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"safe 404\",()=>{pm.response.to.have.status(404);pm.expect(pm.response.json()).to.eql({detail:\"user not found\"});});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "19 Delete own inactive account",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/api/v1/users/{{inactive_user_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"204 empty\",()=>{pm.response.to.have.status(204);pm.expect(pm.response.text()).to.eql(\"\");});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "20 Malformed JSON is redacted",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\":\"{{unknown_login}}\",\"password\":\"Learning only 05!\"",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"redacted 422\",()=>{pm.response.to.have.status(422);const b=pm.response.json();pm.expect(b).to.eql({detail:[{type:\"invalid_request\",loc:[\"request\"],msg:\"invalid input\"}]});pm.expect(pm.response.text().includes(\"Learning only 05!\")).to.eql(false);});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
