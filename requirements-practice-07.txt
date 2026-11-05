@@ -1,0 +1,2 @@
+# Standard-library logging/sqlite3/json/contextvars; retain the completed P6 dependencies.
+-r requirements-practice-06.txt
