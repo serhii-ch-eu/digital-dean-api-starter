@@ -1,0 +1,405 @@
+{
+  "info": {
+    "name": "Digital Dean Practical 08 local admission and evidence",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Local synthetic data only. Fresh server process, N5/T60, no competing login requests. Finish within 60s; no automatic waits or resets. Clear password/token before exporting. Recovery is tested with a fake clock in pytest."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "lab_login",
+      "value": "lab_teacher_a"
+    },
+    {
+      "key": "lab_password",
+      "value": ""
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.variables.get(\"base_url\") !== \"http://127.0.0.1:8000\") {",
+          "  pm.execution.skipRequest(); throw new Error(\"Local synthetic lab only\");",
+          "}",
+          "if (pm.info.requestName === \"01 health and fresh run\") {",
+          "  pm.collectionVariables.unset(\"access_token\");",
+          "  pm.collectionVariables.unset(\"limit_request_id\");",
+          "  pm.collectionVariables.set(\"run_started_ms\", String(Date.now()));",
+          "} else {",
+          "  const started = Number(pm.collectionVariables.get(\"run_started_ms\"));",
+          "  const elapsed = Date.now() - started;",
+          "  if (!Number.isFinite(started) || started <= 0 || elapsed < 0 || elapsed >= 60000) {",
+          "    pm.execution.skipRequest(); throw new Error(\"Restart a fresh isolated run\");",
+          "  }",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 health and fresh run",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status\", () => pm.response.to.have.status(200));",
+              "pm.test(\"server request UUID\", () => {",
+              "  pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.match(",
+              "    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 admitted successful login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\": \"{{lab_login}}\", \"password\": \"{{lab_password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.variables.get(\"lab_password\")) {",
+              "  pm.execution.skipRequest(); throw new Error(\"Set the synthetic password locally\");",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status\", () => pm.response.to.have.status(200));",
+              "pm.test(\"server request UUID\", () => {",
+              "  pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.match(",
+              "    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);",
+              "});",
+              "pm.collectionVariables.set(\"access_token\", pm.response.json().access_token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 admitted wrong password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\": \"{{lab_login}}\", \"password\": \"Synthetic wrong password 08!\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status\", () => pm.response.to.have.status(401));",
+              "pm.test(\"server request UUID\", () => {",
+              "  pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.match(",
+              "    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 admitted malformed JSON",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status\", () => pm.response.to.have.status(422));",
+              "pm.test(\"server request UUID\", () => {",
+              "  pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.match(",
+              "    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 admitted unknown login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\": \"missing_lab_user_08\", \"password\": \"Synthetic wrong password 08!\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status\", () => pm.response.to.have.status(401));",
+              "pm.test(\"server request UUID\", () => {",
+              "  pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.match(",
+              "    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 admitted fifth attempt",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\": \"{{lab_login}}\", \"password\": \"Synthetic wrong password 08!\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status\", () => pm.response.to.have.status(401));",
+              "pm.test(\"server request UUID\", () => {",
+              "  pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.match(",
+              "    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 rejected sixth attempt",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\": \"{{lab_login}}\", \"password\": \"Synthetic wrong password 08!\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status\", () => pm.response.to.have.status(429));",
+              "pm.test(\"server request UUID\", () => {",
+              "  pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.match(",
+              "    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);",
+              "});",
+              "pm.test(\"bounded rejection\", () => {",
+              "  pm.expect(pm.response.json()).to.eql({detail:\"too many login attempts\"});",
+              "  pm.expect(pm.response.headers.get(\"Retry-After\")).to.match(/^[1-9][0-9]*$/);",
+              "  pm.expect(pm.response.headers.get(\"Cache-Control\")).to.eql(\"no-store\");",
+              "});",
+              "pm.collectionVariables.set(\"limit_request_id\", pm.response.headers.get(\"X-Request-ID\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 valid password still limited",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\": \"{{lab_login}}\", \"password\": \"{{lab_password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status\", () => pm.response.to.have.status(429));",
+              "pm.test(\"server request UUID\", () => {",
+              "  pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.match(",
+              "    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);",
+              "});",
+              "pm.test(\"bounded rejection\", () => {",
+              "  pm.expect(pm.response.json()).to.eql({detail:\"too many login attempts\"});",
+              "  pm.expect(pm.response.headers.get(\"Retry-After\")).to.match(/^[1-9][0-9]*$/);",
+              "  pm.expect(pm.response.headers.get(\"Cache-Control\")).to.eql(\"no-store\");",
+              "});",
+              "pm.collectionVariables.set(\"limit_request_id\", pm.response.headers.get(\"X-Request-ID\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 health not limited",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status\", () => pm.response.to.have.status(200));",
+              "pm.test(\"server request UUID\", () => {",
+              "  pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.match(",
+              "    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 old token remains usable",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v1/auth/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status\", () => pm.response.to.have.status(200));",
+              "pm.test(\"server request UUID\", () => {",
+              "  pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.match(",
+              "    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);",
+              "});",
+              "pm.collectionVariables.unset(\"access_token\");"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
